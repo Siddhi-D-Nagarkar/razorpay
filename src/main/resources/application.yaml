@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: RazorPay_Clone
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/razorpaydb}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
