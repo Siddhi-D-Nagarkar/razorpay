@@ -17,7 +17,7 @@ public class SettlementPayment {
     @EmbeddedId
     SettlementPaymentId id;
 
-    @MapsId()
+    @MapsId("settlementId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "settlement_id",nullable = false)
     Settlement settlement;

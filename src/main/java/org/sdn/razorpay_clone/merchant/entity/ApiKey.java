@@ -35,6 +35,7 @@ public class ApiKey {
     Environment environment;
 
     @Column(nullable = false)
+    @Builder.Default
     Boolean enabled = true;
 
     LocalDateTime lastUsedAt;
