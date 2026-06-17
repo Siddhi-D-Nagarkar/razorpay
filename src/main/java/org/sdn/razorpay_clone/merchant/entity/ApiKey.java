@@ -21,14 +21,17 @@ public class ApiKey {
     UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name ="merchant_id", nullable = false)
+    @JoinColumn(name = "merchant_id", nullable = false)
     Merchant merchant;
 
     @Column(nullable = false, unique = true, length = 50)
     String keyId;
 
-    @Column(length = 200)
+    @Column(nullable = false, length = 200)
     String keySecretHash;
+
+    @Column(length = 200)
+    String previousKeySecretHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
