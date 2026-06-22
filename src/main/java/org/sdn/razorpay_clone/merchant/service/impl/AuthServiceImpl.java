@@ -12,6 +12,7 @@ import org.sdn.razorpay_clone.merchant.dto.request.MerchantSignUpRequest;
 import org.sdn.razorpay_clone.merchant.dto.response.MerchantResponse;
 import org.sdn.razorpay_clone.merchant.entity.AppUser;
 import org.sdn.razorpay_clone.merchant.entity.Merchant;
+import org.sdn.razorpay_clone.merchant.mapper.MerchantMapper;
 import org.sdn.razorpay_clone.merchant.repository.AppUserRepository;
 import org.sdn.razorpay_clone.merchant.repository.MerchantRepository;
 import org.sdn.razorpay_clone.merchant.service.AuthService;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 public class AuthServiceImpl implements AuthService {
     AppUserRepository appUserRepository;
     MerchantRepository merchantRepository;
+    MerchantMapper merchantMapper;
 
     @Transactional
     @Override
@@ -34,13 +36,7 @@ public class AuthServiceImpl implements AuthService {
             throw new DuplicateResourceException("DUPLICATE_MERCHANT_EMAIL", "Merchant with email " + request.email() + " already exists");
         }
 
-        Merchant newMerchant = Merchant.builder()
-                .name(request.name())
-                .email(request.email())
-                .businessType(request.businessType())
-                .businessName(request.businessName())
-                .status(MerchantStatus.PENDING_KYC)
-                .build();
+        Merchant newMerchant = merchantMapper.toMerchant(request, MerchantStatus.PENDING_KYC);
 
         newMerchant = merchantRepository.save(newMerchant);
 
@@ -52,18 +48,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         appUserRepository.save(newAppUser);
-
-//        return new MerchantResponse(newMerchant.getId(), newMerchant.getName(), newMerchant.getEmail(),
-//                newMerchant.getBusinessType(), newMerchant.getBusinessName(), newMerchant.getStatus());
-
-        return MerchantResponse.builder()
-                .id(newMerchant.getId())
-                .name(newMerchant.getName())
-                .email(newMerchant.getEmail())
-                .businessType(newMerchant.getBusinessType())
-                .businessName(newMerchant.getBusinessName())
-                .status(newMerchant.getStatus())
-                .build();
+        return merchantMapper.toMerchantResponse(newMerchant);
 
     }
 }

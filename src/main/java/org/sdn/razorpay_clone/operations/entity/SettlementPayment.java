@@ -3,6 +3,7 @@ package org.sdn.razorpay_clone.operations.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 
 @Entity
 @Table(name = "settlement_payment")
@@ -12,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SettlementPayment {
+public class SettlementPayment extends BaseEntity {
 
     @EmbeddedId
     SettlementPaymentId id;

@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.entity.Money;
 import org.sdn.razorpay_clone.common.enums.PaymentMethod;
 import org.sdn.razorpay_clone.common.enums.PaymentStatus;
@@ -14,14 +15,17 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payment")
+@Table(name = "payment", indexes = {
+        @Index(name = "idx_payment_order_id", columnList = "order_id"),
+        @Index(name = "idx_payment_merchant_id", columnList = "merchant_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Payment {
+public class Payment extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;

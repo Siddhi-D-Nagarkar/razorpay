@@ -3,28 +3,32 @@ package org.sdn.razorpay_clone.merchant.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.enums.BusinessType;
 import org.sdn.razorpay_clone.common.enums.MerchantStatus;
 
 import java.util.UUID;
 
 @Entity
-@Table(name = "merchant")
+@Table(name = "merchant", indexes = {
+        @Index(name = "idx_merchant_business_type", columnList = "businessType"),
+        @Index(name = "idx_merchant_status", columnList = "status")
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Merchant {
+public class Merchant extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(nullable = false,length = 200)
+    @Column(nullable = false, length = 200)
     String name;
 
-    @Column(unique = true,nullable = false)
+    @Column(unique = true, nullable = false)
     String email;
 
     @Column(length = 20)
@@ -39,8 +43,8 @@ public class Merchant {
     String websiteUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false,length = 200)
-    MerchantStatus status =  MerchantStatus.PENDING_KYC;
+    @Column(nullable = false, length = 200)
+    MerchantStatus status = MerchantStatus.PENDING_KYC;
     @Column(length = 20)
     String gstId;
     @Column(length = 20)

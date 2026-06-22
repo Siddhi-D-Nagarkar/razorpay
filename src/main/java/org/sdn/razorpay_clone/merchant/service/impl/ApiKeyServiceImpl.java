@@ -12,6 +12,7 @@ import org.sdn.razorpay_clone.merchant.dto.response.ApiKeyCreateResponse;
 import org.sdn.razorpay_clone.merchant.dto.response.ApiKeyResponse;
 import org.sdn.razorpay_clone.merchant.entity.ApiKey;
 import org.sdn.razorpay_clone.merchant.entity.Merchant;
+import org.sdn.razorpay_clone.merchant.mapper.ApiKeyMapper;
 import org.sdn.razorpay_clone.merchant.repository.ApiKeyRepository;
 import org.sdn.razorpay_clone.merchant.repository.MerchantRepository;
 import org.sdn.razorpay_clone.merchant.service.ApiKeyService;
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class ApiKeyServiceImpl implements ApiKeyService {
     ApiKeyRepository apiKeyRepository;
     MerchantRepository merchantRepository;
+    ApiKeyMapper apiKeyMapper;
 
     @Transactional
     @Override
@@ -50,24 +52,12 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         newApiKey = this.apiKeyRepository.save(newApiKey);
 
-        return ApiKeyCreateResponse.builder()
-                .id(newApiKey.getId())
-                .keyId(newApiKey.getKeyId())
-                .keySecret(rawSecret)
-                .environment(newApiKey.getEnvironment())
-                .build();
+        return apiKeyMapper.toApiKeyCreateResponse(newApiKey, rawSecret);
     }
 
     @Override
     public List<ApiKeyResponse> listByMerchant(UUID merchantId) {
-        return this.apiKeyRepository.findByMerchant_Id(merchantId).stream().map(apiKey -> ApiKeyResponse.builder()
-                .id(apiKey.getId())
-                .keyId(apiKey.getKeyId())
-                .environment(apiKey.getEnvironment())
-                .enabled(apiKey.getEnabled())
-                .lastUsedAt(apiKey.getLastUsedAt())
-                .createdAt(null)
-                .build()).toList();
+        return apiKeyMapper.toApiKeyResponseList(this.apiKeyRepository.findByMerchant_Id(merchantId));
     }
 
     @Transactional
@@ -88,6 +78,11 @@ public class ApiKeyServiceImpl implements ApiKeyService {
             log.error("API Key with id {} not found for merchant {}", keyId, merchantId);
             return new ResourceNotFoundException("api_key", keyId);
         });
+
+        if (!apiKey.getEnabled()) {
+            log.error("API Key with id {} is disabled for merchant {}", keyId, merchantId);
+            throw new RuntimeException("Cannot Rotate Disabled API Key");
+        }
 
         String rawSecret = RandomizerUtil.randomBase64(40);
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash());

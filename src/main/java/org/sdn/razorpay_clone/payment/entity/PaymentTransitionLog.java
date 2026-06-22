@@ -3,6 +3,7 @@ package org.sdn.razorpay_clone.payment.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.enums.PaymentActor;
 import org.sdn.razorpay_clone.common.enums.PaymentEvent;
 import org.sdn.razorpay_clone.common.enums.PaymentStatus;
@@ -11,14 +12,17 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payment_transition_log")
+@Table(name = "payment_transition_log",
+        indexes = {
+                @Index(name = "idx_payment_transition_log_payment_id", columnList = "payment_id")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PaymentTransitionLog {
+public class PaymentTransitionLog extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

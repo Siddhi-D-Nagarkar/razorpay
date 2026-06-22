@@ -3,6 +3,7 @@ package org.sdn.razorpay_clone.merchant.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.enums.Environment;
 
 import java.time.LocalDateTime;
@@ -14,8 +15,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(indexes = {
+        @Index(name = "idx_api_key_merchant_id",columnList = "merchant_id"),
+        @Index(name = "idx_api_key_merchant_env",columnList = "merchant_id,environment,enabled")
+})
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ApiKey {
+public class ApiKey extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
@@ -40,7 +45,6 @@ public class ApiKey {
     @Column(nullable = false)
     @Builder.Default
     Boolean enabled = true;
-
     LocalDateTime lastUsedAt;
     LocalDateTime rotatedAt;
     LocalDateTime gracePeriodExpiryAt;

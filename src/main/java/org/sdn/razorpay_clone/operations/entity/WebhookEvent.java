@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.enums.WebhookEventStatus;
 
 import java.time.LocalDateTime;
@@ -20,7 +21,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class WebhookEvent { // For Logging Purpose this is the table
+public class WebhookEvent extends BaseEntity { // For Logging Purpose this is the table
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;

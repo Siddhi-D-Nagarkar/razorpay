@@ -2,15 +2,15 @@ package org.sdn.razorpay_clone.common.entity;
 
 
 import jakarta.persistence.Embeddable;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Embeddable
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
+@Getter
+@Setter
 public class Money {
         int amountUnits; // smallest unit of a currency
         String currency; // Rupee,USD,Yuan

@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.entity.Money;
 import org.sdn.razorpay_clone.common.enums.OrderStatus;
 import org.sdn.razorpay_clone.merchant.entity.Merchant;
@@ -14,14 +15,17 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "order_record")
+@Table(name = "order_record", indexes = {
+        @Index(name = "idx_order_id_merchant_id", columnList = "id,merchant_id"),
+        @Index(name = "idx_order_merchant_id", columnList = "merchant_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OrderRecord {
+public class OrderRecord extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
@@ -31,10 +35,14 @@ public class OrderRecord {
 
     @Embedded
     Money amount;
+
+    @Column(length = 100)
+    String receipt; //it is like order id created at the merchant BE
     @Enumerated(EnumType.STRING)
     OrderStatus status = OrderStatus.CREATED;
     @Column(nullable = false)
-    Integer attempts;
+    @Builder.Default
+    Integer attempts = 0;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
