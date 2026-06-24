@@ -56,6 +56,8 @@ public class Payment extends BaseEntity {
     @Column(length = 100)
     String bankReference;
     @Column(length = 100)
+    String processorReference;
+    @Column(length = 100)
     String errorCode;
     @Column(length = 200)
     String errorDescription;

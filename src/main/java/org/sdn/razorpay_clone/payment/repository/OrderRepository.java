@@ -1,6 +1,5 @@
 package org.sdn.razorpay_clone.payment.repository;
 
-import jakarta.validation.constraints.Size;
 import org.sdn.razorpay_clone.payment.entity.OrderRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,4 +11,6 @@ public interface OrderRepository extends JpaRepository<OrderRecord, UUID> {
     boolean existsByMerchantIdAndReceipt(UUID merchantId, String receipt);
 
     Optional<OrderRecord> findByMerchantIdAndId(UUID merchantId, UUID orderId);
+
+    Optional<OrderRecord> findByIdAndMerchantId(UUID uuid, UUID merchantId);
 }
