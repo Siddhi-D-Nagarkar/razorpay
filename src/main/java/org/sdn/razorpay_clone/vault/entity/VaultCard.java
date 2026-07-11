@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.sdn.razorpay_clone.common.entity.BaseEntity;
+import org.sdn.razorpay_clone.common.enums.CardBrand;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -34,7 +35,7 @@ public class VaultCard extends BaseEntity {
     @Column(nullable = false)
     byte[] encryptedDek;
     @Column(nullable = false)
-    String brand;
+    CardBrand brand;
     @Column(nullable = false)
     String expiryMonth;
     @Column(nullable = false)
