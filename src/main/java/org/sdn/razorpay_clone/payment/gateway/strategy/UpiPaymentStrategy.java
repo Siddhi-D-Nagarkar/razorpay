@@ -28,7 +28,7 @@ public class UpiPaymentStrategy implements PaymentStrategy {
         log.info("Initiating Upi payment for request with paymentId : {}", request.paymentId());
         try {
             PaymentProcessorRequest paymentProcessorRequest =
-                    PaymentProcessorRequest.nonCard(request.paymentId(), PaymentMethod.NETBANKING, request.amount(), request.methodDetails());
+                    PaymentProcessorRequest.nonCard(request.paymentId(), PaymentMethod.UPI, request.amount(), request.methodDetails());
             PaymentProcessorResponse paymentProcessorResponse = paymentProcessorRouter.charge(paymentProcessorRequest);
 
             switch (paymentProcessorResponse) {

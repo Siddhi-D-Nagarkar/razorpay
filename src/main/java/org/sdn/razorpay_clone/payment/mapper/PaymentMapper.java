@@ -15,9 +15,8 @@ import java.util.List;
 public interface PaymentMapper {
 
 
-//    @Mapping(target = "status", source = "")
     @Mapping(target = "orderId", source = "order.id")
-//    @Mapping(target = "createdAt", source = "")
+    @Mapping(target = "status", source = "paymentStatus")
     PaymentResponse toPaymentResponse(Payment payment);
 
     List<PaymentResponse> toPaymentResponseList(List<Payment> payments);

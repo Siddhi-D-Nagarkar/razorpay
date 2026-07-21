@@ -4,6 +4,7 @@ package org.sdn.razorpay_clone.payment.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.sdn.razorpay_clone.merchant.security.MerchantContext;
 import org.sdn.razorpay_clone.payment.dto.request.PaymentInitRequest;
 import org.sdn.razorpay_clone.payment.dto.response.PaymentResponse;
 import org.sdn.razorpay_clone.payment.service.PaymentService;
@@ -20,15 +21,15 @@ import java.util.UUID;
 public class PaymentController {
 
     PaymentService paymentService;
-    UUID merchantId = UUID.fromString("ca788752-1dbd-4453-9d33-709e9d8e85db"); // TODO: Take from security context
+    MerchantContext merchantContext;
 
     @PostMapping
     public ResponseEntity<PaymentResponse> initiate(@RequestBody @Valid PaymentInitRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.initiate(merchantId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.initiate(merchantContext.getMerchantId(), request));
     }
 
     @PostMapping("/{paymentId}/capture")
     public ResponseEntity<PaymentResponse> capture(@PathVariable UUID paymentId) {
-        return ResponseEntity.ok(paymentService.capture(merchantId, paymentId));
+        return ResponseEntity.ok(paymentService.capture(merchantContext.getMerchantId(), paymentId));
     }
 }

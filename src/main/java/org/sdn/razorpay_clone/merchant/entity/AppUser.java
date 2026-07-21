@@ -3,9 +3,15 @@ package org.sdn.razorpay_clone.merchant.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.jspecify.annotations.Nullable;
 import org.sdn.razorpay_clone.common.entity.BaseEntity;
 import org.sdn.razorpay_clone.common.enums.UserRole;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -18,7 +24,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AppUser extends BaseEntity {
+public class AppUser extends BaseEntity implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
@@ -37,4 +43,20 @@ public class AppUser extends BaseEntity {
     @Column(nullable = false)
     UserRole role;
 
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(
+                new SimpleGrantedAuthority("ROLE_" + this.role.name())
+        );
+    }
+
+    @Override
+    public @Nullable String getPassword() {
+        return this.passwordHash;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
 }

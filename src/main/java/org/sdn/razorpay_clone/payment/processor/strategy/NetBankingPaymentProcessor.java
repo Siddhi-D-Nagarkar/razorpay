@@ -4,9 +4,11 @@ import org.sdn.razorpay_clone.common.util.RandomizerUtil;
 import org.sdn.razorpay_clone.payment.processor.PaymentProcessor;
 import org.sdn.razorpay_clone.payment.processor.dto.PaymentProcessorRequest;
 import org.sdn.razorpay_clone.payment.processor.dto.PaymentProcessorResponse;
+import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+@Component
 public class NetBankingPaymentProcessor implements PaymentProcessor {
 
     @Override

@@ -16,6 +16,8 @@ import org.sdn.razorpay_clone.merchant.mapper.ApiKeyMapper;
 import org.sdn.razorpay_clone.merchant.repository.ApiKeyRepository;
 import org.sdn.razorpay_clone.merchant.repository.MerchantRepository;
 import org.sdn.razorpay_clone.merchant.service.ApiKeyService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     ApiKeyRepository apiKeyRepository;
     MerchantRepository merchantRepository;
     ApiKeyMapper apiKeyMapper;
+    BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
     @Transactional
     @Override
@@ -45,7 +48,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         ApiKey newApiKey = ApiKey.builder()
                 .keyId(keyId)
-                .keySecretHash(rawSecret)
+                .keySecretHash(this.bCryptPasswordEncoder.encode(rawSecret))
                 .merchant(merchant)
                 .environment(request.environment())
                 .build();
@@ -86,7 +89,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         String rawSecret = RandomizerUtil.randomBase64(40);
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash());
-        apiKey.setKeySecretHash(rawSecret); // TODO :- Hash the secret before saving
+        apiKey.setKeySecretHash(this.bCryptPasswordEncoder.encode(rawSecret));
         apiKey.setRotatedAt(LocalDateTime.now());
         apiKey.setGracePeriodExpiryAt(LocalDateTime.now().plusHours(24)); // 24 grace period
 

@@ -60,6 +60,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(order.getAmount())
                 .paymentStatus(PaymentStatus.CREATED)
                 .method(request.method())
+                .idempotencyKey(UUID.randomUUID().toString())
                 .methodDetails(request.methodDetails())
                 .build();
 
@@ -74,6 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .methodDetails(request.methodDetails())
                 .build();
 
+        paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_ATTEMPT);
         PaymentResult result = this.paymentStrategyFactory.getPaymentStrategy(request.method()).initiate(paymentRequest);
 
         switch (result) {
@@ -122,5 +124,52 @@ public class PaymentServiceImpl implements PaymentService {
 
 
         return paymentMapper.toPaymentResponse(paymentRepository.save(payment));
+    }
+
+    @Override
+    @Transactional
+    public void resolveAuthorization(UUID paymentId, boolean approve, String bankRef, String errorCode, String errorDescription) {
+        Payment payment = this.paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment Not Found", paymentId.toString()));
+        // Implementation for resolving authorization
+
+        if (payment.getPaymentStatus() != PaymentStatus.AUTHORIZING) {
+            log.warn("Payment {} is not in AUTHORIZING state. Current state: {}", paymentId, payment.getPaymentStatus());
+            return;
+        }
+
+        OrderRecord orderRecord = payment.getOrder();
+
+
+        if (approve) {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_SUCCESS);
+            payment.setBankReference(bankRef);
+            payment.setAuthorizedAt(LocalDateTime.now());
+
+//            AUTO CAPTURE
+            paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_REQUEST);
+            PaymentResult captureResult = paymentGatewayRouter.capture(payment.getMethod(), paymentId);
+
+            if (captureResult instanceof PaymentResult.Success success) {
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_SUCCESS);
+                payment.setCapturedAt(LocalDateTime.now());
+                orderRecord.setStatus(OrderStatus.PAID);
+
+            } else if (captureResult instanceof PaymentResult.Failure failure) {
+                payment.setErrorCode(failure.errorCode());
+                payment.setErrorDescription(failure.errorDescription());
+            }
+            log.info("Payment {} authorized successfully with bank reference {}", paymentId, bankRef);
+        } else {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
+            payment.setErrorCode(errorCode);
+            payment.setErrorDescription(errorDescription);
+            log.info("Payment {} authorization failed with error code {} and description {}", paymentId, errorCode, errorDescription);
+
+        }
+
+        paymentRepository.save(payment);
+        orderRepository.save(orderRecord);
+
     }
 }

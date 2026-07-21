@@ -8,14 +8,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.sdn.razorpay_clone.common.enums.MerchantStatus;
 import org.sdn.razorpay_clone.common.enums.UserRole;
 import org.sdn.razorpay_clone.common.exception.DuplicateResourceException;
+import org.sdn.razorpay_clone.common.exception.ResourceNotFoundException;
+import org.sdn.razorpay_clone.merchant.dto.request.LoginRequest;
 import org.sdn.razorpay_clone.merchant.dto.request.MerchantSignUpRequest;
+import org.sdn.razorpay_clone.merchant.dto.response.LoginResponse;
 import org.sdn.razorpay_clone.merchant.dto.response.MerchantResponse;
 import org.sdn.razorpay_clone.merchant.entity.AppUser;
 import org.sdn.razorpay_clone.merchant.entity.Merchant;
 import org.sdn.razorpay_clone.merchant.mapper.MerchantMapper;
 import org.sdn.razorpay_clone.merchant.repository.AppUserRepository;
 import org.sdn.razorpay_clone.merchant.repository.MerchantRepository;
+import org.sdn.razorpay_clone.merchant.security.JwtUtil;
 import org.sdn.razorpay_clone.merchant.service.AuthService;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
@@ -27,6 +34,9 @@ public class AuthServiceImpl implements AuthService {
     AppUserRepository appUserRepository;
     MerchantRepository merchantRepository;
     MerchantMapper merchantMapper;
+    PasswordEncoder passwordEncoder;
+    AuthenticationManager authenticationManager;
+    JwtUtil jwtUtil;
 
     @Transactional
     @Override
@@ -42,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
 
         AppUser newAppUser = AppUser.builder()
                 .email(request.email())
-                .passwordHash(request.password()) // TODO :- encrypt password using Bcrypt
+                .passwordHash(passwordEncoder.encode(request.password()))
                 .merchant(newMerchant)
                 .role(UserRole.OWNER)
                 .build();
@@ -50,5 +60,19 @@ public class AuthServiceImpl implements AuthService {
         appUserRepository.save(newAppUser);
         return merchantMapper.toMerchantResponse(newMerchant);
 
+    }
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+        );
+
+        AppUser appUser = appUserRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User", request.email()));
+
+        String token = jwtUtil.generateAccessToken(request.email(), appUser.getMerchant().getId(), appUser.getRole().toString());
+
+        return new LoginResponse(token);
     }
 }

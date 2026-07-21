@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.sdn.razorpay_clone.merchant.security.MerchantContext;
 import org.sdn.razorpay_clone.vault.dto.request.TokenizeRequest;
 import org.sdn.razorpay_clone.vault.dto.response.TokenizeResponse;
 import org.sdn.razorpay_clone.vault.service.VaultService;
@@ -24,12 +25,12 @@ import java.util.UUID;
 @Slf4j
 public class VaultController {
     VaultService vaultService;
-    UUID merchantId = UUID.fromString("ca788752-1dbd-4453-9d33-709e9d8e85db"); // TODO: Take from security context
+    MerchantContext merchantContext;
 
 
     @PostMapping("/tokenize")
     public ResponseEntity<TokenizeResponse> tokenize(@RequestBody @Valid TokenizeRequest tokenizeRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(vaultService.tokenize(tokenizeRequest, merchantId));
+                .body(vaultService.tokenize(tokenizeRequest, merchantContext.getMerchantId()));
     }
 }
