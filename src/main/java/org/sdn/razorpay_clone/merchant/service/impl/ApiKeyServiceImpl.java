@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.sdn.razorpay_clone.common.exception.ResourceNotFoundException;
 import org.sdn.razorpay_clone.common.util.RandomizerUtil;
+import org.sdn.razorpay_clone.merchant.cache.ApiKeyCache;
 import org.sdn.razorpay_clone.merchant.dto.request.CreateApiKeyRequest;
 import org.sdn.razorpay_clone.merchant.dto.response.ApiKeyCreateResponse;
 import org.sdn.razorpay_clone.merchant.dto.response.ApiKeyResponse;
@@ -33,6 +34,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     MerchantRepository merchantRepository;
     ApiKeyMapper apiKeyMapper;
     BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+    ApiKeyCache apiKeyCache;
 
     @Transactional
     @Override
@@ -72,6 +74,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         });
 
         apiKey.setEnabled(false);
+        this.apiKeyCache.evict(apiKey.getKeyId());
     }
 
     @Transactional
@@ -94,6 +97,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         apiKey.setGracePeriodExpiryAt(LocalDateTime.now().plusHours(24)); // 24 grace period
 
         apiKey = this.apiKeyRepository.save(apiKey);
+        this.apiKeyCache.evict(apiKey.getKeyId());
         return ApiKeyCreateResponse.builder()
                 .id(apiKey.getId())
                 .keyId(apiKey.getKeyId())

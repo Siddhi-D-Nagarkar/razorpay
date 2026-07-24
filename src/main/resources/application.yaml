@@ -9,6 +9,16 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:4600}
+      password: ${REDIS_PASSWORD:}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
 vault:
   master-key: 8pDBThdCBclcEd3wrM3r1Si5qXDVtCbi6vrt0AsdYeo=
 
@@ -33,3 +43,10 @@ payment:
 
 jwt:
   secret-key: asdf97asd9fuajsiodfua98s7dfyuajsildfhao8s7dfuoaisjfdioas98df7yua8s
+
+app:
+  rate-limit:
+    method: fixed
+    use-case:
+      api-key:
+        requests-per-minute: 2

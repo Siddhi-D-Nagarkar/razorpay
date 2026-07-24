@@ -10,9 +10,15 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.sdn.razorpay_clone.common.exception.RateLimitException;
+import org.sdn.razorpay_clone.common.ratelimit.RateLimitResult;
+import org.sdn.razorpay_clone.common.ratelimit.RateLimiter;
+import org.sdn.razorpay_clone.merchant.cache.ApiKeyCache;
+import org.sdn.razorpay_clone.merchant.cache.ApiKeyCacheEntry;
 import org.sdn.razorpay_clone.merchant.entity.ApiKey;
 import org.sdn.razorpay_clone.merchant.repository.ApiKeyRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,10 +41,14 @@ import java.util.List;
 //@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private final ApiKeyRepository apiKeyRepository;
-//    PasswordEncoder passwordEncoder;
+    //    PasswordEncoder passwordEncoder;
     private final MerchantContext merchantContext;
     private final HandlerExceptionResolver handlerExceptionResolver;
-    private final BCryptPasswordEncoder passwordEncoder = new  BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final ApiKeyCache apiKeyCache;
+    private final RateLimiter rateLimiter;
+    @Value("${app.rate-limit.use-case.api-key.requests-per-minute:10}")
+    private Integer requestPerMinute;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -63,14 +73,27 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             String secret = credentials[1];
 
             // You can implement your logic to validate the API key and secret here
-            ApiKey apiKey = apiKeyRepository.findByKeyId(keyId)
-                    .orElseThrow(() -> new BadRequestException("Invalid API Key"));
+            ApiKeyCacheEntry apiKeyCacheEntry = this.apiKeyCache.get(keyId)
+                    .orElseGet(() -> this.loadAndCache(keyId));
 
-            if (!secretMatches(secret, apiKey)) {
+//            ApiKey apiKey = apiKeyRepository.findByKeyId(keyId)
+//                    .orElseThrow(() -> new BadRequestException("Invalid API Key"));
+
+            RateLimitResult rateLimitResult = this.rateLimiter.check("apikey:" + keyId, requestPerMinute, 60);
+
+            if (!rateLimitResult.allowed()) {
+                log.warn("Rate limit exceeded for API Key: {}. Retry after {} seconds", keyId, rateLimitResult.retryAfterSeconds());
+                throw new RateLimitException("Too many requests. Please try again later.", rateLimitResult.retryAfterSeconds());
+            }
+
+            response.setHeader("X-RateLimit-Limit", String.valueOf(requestPerMinute));
+            response.setHeader("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining()));
+
+            if (apiKeyCacheEntry != null && !secretMatches(secret, apiKeyCacheEntry)) {
                 throw new BadRequestException("Invalid API Key or Secret");
             }
 
-            if (!apiKey.getEnabled() || !this.secretMatches(secret, apiKey)) {
+            if (!apiKeyCacheEntry.enabled() || !this.secretMatches(secret, apiKeyCacheEntry)) {
                 throw new BadRequestException("API Key is disabled or invalid");
             }
 
@@ -80,8 +103,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            merchantContext.setMerchantId(apiKey.getMerchant().getId());
-            merchantContext.setKeyId(apiKey.getKeyId());
+            merchantContext.setMerchantId(apiKeyCacheEntry.merchantId());
+            merchantContext.setKeyId(apiKeyCacheEntry.keyId());
 
             filterChain.doFilter(request, response);
         } catch (Exception e) {
@@ -90,16 +113,33 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     }
 
-    private Boolean secretMatches(String rawSecret, ApiKey apiKey) {
-        if (this.passwordEncoder.matches(rawSecret, apiKey.getKeySecretHash())) {
+    private ApiKeyCacheEntry loadAndCache(String keyId) {
+        ApiKey apiKey = apiKeyRepository.findByKeyId(keyId)
+                .orElse(null);
+
+        if (apiKey == null) {
+            return null;
+        }
+        ApiKeyCacheEntry apiKeyCacheEntry = ApiKeyCacheEntry.builder()
+                .merchantId(apiKey.getMerchant().getId())
+                .keyId(apiKey.getKeyId())
+                .keySecretHash(apiKey.getKeySecretHash())
+                .previousKeySecretHash(apiKey.getPreviousKeySecretHash())
+                .environment(apiKey.getEnvironment())
+                .gracePeriodExpiryAt(apiKey.getGracePeriodExpiryAt())
+                .enabled(apiKey.getEnabled())
+                .build();
+
+        this.apiKeyCache.put(keyId, apiKeyCacheEntry);
+        return apiKeyCacheEntry;
+    }
+
+    private Boolean secretMatches(String rawSecret, ApiKeyCacheEntry apiKey) {
+        if (this.passwordEncoder.matches(rawSecret, apiKey.keySecretHash())) {
             return true;
         }
-
-        boolean isInGracePeriod = apiKey.getGracePeriodExpiryAt() != null && LocalDateTime.now().isBefore(apiKey.getGracePeriodExpiryAt());
-
-
-        return isInGracePeriod && apiKey.getPreviousKeySecretHash() != null &&
-                this.passwordEncoder.matches(rawSecret, apiKey.getPreviousKeySecretHash());
+        return apiKey.isInGracePeriod() && apiKey.previousKeySecretHash() != null &&
+                this.passwordEncoder.matches(rawSecret, apiKey.previousKeySecretHash());
     }
 
     private String[] decodeHeader(String header) {
