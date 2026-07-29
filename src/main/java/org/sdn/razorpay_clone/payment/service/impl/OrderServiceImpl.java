@@ -10,6 +10,7 @@ import org.sdn.razorpay_clone.common.enums.OrderStatus;
 import org.sdn.razorpay_clone.common.exception.BusinessRuleViolationException;
 import org.sdn.razorpay_clone.common.exception.DuplicateResourceException;
 import org.sdn.razorpay_clone.common.exception.ResourceNotFoundException;
+import org.sdn.razorpay_clone.merchant.service.CustomerService;
 import org.sdn.razorpay_clone.payment.dto.request.CreateOrderRequest;
 import org.sdn.razorpay_clone.payment.dto.response.OrderResponse;
 import org.sdn.razorpay_clone.payment.dto.response.PaymentResponse;
@@ -36,6 +37,7 @@ public class OrderServiceImpl implements OrderService {
     PaymentRepository paymentRepository;
     PaymentMapper paymentMapper;
     OrderMapper orderMapper;
+    CustomerService customerService;
 
     @Value("${razorpay.order.default-expiry-minutes:30}")
     @NonFinal
@@ -48,11 +50,19 @@ public class OrderServiceImpl implements OrderService {
             log.error("Order with receipt {} already exists", request.receipt());
             throw new DuplicateResourceException("ORDER_RECEIPT_DUPLICATE", "Order with receipt " + request.receipt() + " already exists");
         }
+        UUID customerId = null;
+        if (request.customer() != null) {
+            customerId = customerService.findOrCreate(merchantId,
+                    request.customer().email(),
+                    request.customer().name(),
+                    request.customer().phone());
+        }
 
         OrderRecord newOrderRecord = OrderRecord.builder()
                 .amount(request.amount())
                 .receipt(request.receipt())
                 .notes(request.notes())
+                .customerId(customerId)
                 .merchantId(merchantId)
                 .status(OrderStatus.CREATED)
                 .expiresAt(request.expiresAt() != null ? request.expiresAt() :

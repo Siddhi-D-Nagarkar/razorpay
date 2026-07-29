@@ -33,6 +33,9 @@ public class OrderRecord extends BaseEntity {
     @Column(name = "merchant_id", nullable = false)
     UUID merchantId;
 
+    @Column(name = "customer_id")
+    UUID customerId;
+
     @Embedded
     Money amount;
 

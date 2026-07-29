@@ -7,7 +7,6 @@ import lombok.experimental.FieldDefaults;
 import org.sdn.razorpay_clone.merchant.security.MerchantContext;
 import org.sdn.razorpay_clone.payment.dto.request.PaymentInitRequest;
 import org.sdn.razorpay_clone.payment.dto.response.PaymentResponse;
-import org.sdn.razorpay_clone.payment.dto.response.TransactionResponse;
 import org.sdn.razorpay_clone.payment.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,5 @@
 package org.sdn.razorpay_clone.merchant.service.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -24,6 +23,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -38,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
     AuthenticationManager authenticationManager;
     JwtUtil jwtUtil;
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public MerchantResponse signup(MerchantSignUpRequest request) {
         if (merchantRepository.existsByEmail(request.email())) {
