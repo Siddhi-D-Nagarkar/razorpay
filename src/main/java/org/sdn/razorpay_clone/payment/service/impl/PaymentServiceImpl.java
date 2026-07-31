@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.sdn.razorpay_clone.common.enums.EventAggregateType;
 import org.sdn.razorpay_clone.common.enums.OrderStatus;
 import org.sdn.razorpay_clone.common.enums.PaymentEvent;
 import org.sdn.razorpay_clone.common.enums.PaymentStatus;
@@ -19,6 +20,7 @@ import org.sdn.razorpay_clone.payment.gateway.PaymentStrategyFactory;
 import org.sdn.razorpay_clone.payment.gateway.dto.PaymentRequest;
 import org.sdn.razorpay_clone.payment.gateway.dto.PaymentResult;
 import org.sdn.razorpay_clone.payment.mapper.PaymentMapper;
+import org.sdn.razorpay_clone.payment.outbox.OutBoxEventService;
 import org.sdn.razorpay_clone.payment.repository.OrderRepository;
 import org.sdn.razorpay_clone.payment.repository.PaymentRepository;
 import org.sdn.razorpay_clone.payment.service.PaymentService;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -41,6 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
     PaymentMapper paymentMapper;
     PaymentGatewayRouter paymentGatewayRouter;
     PaymentTransitionService paymentTransitionService;
+    OutBoxEventService outBoxEventService;
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     @Override
@@ -68,6 +72,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         payment = paymentRepository.save(payment);
+
 
         PaymentRequest paymentRequest = PaymentRequest.builder()
                 .paymentId(payment.getId())
@@ -99,6 +104,20 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment = paymentRepository.save(payment);
         orderRepository.save(order);
+
+        this.outBoxEventService.storeEvent(
+                EventAggregateType.PAYMENT,
+                payment.getId(),
+                "PAYMENT_CREATED",
+                Map.of("orderId", order.getId(),
+                        "paymentId", payment.getId(),
+                        "merchantId", merchantId.toString(),
+                        "paymentStatus", payment.getPaymentStatus().name(),
+                        "amountUnits", order.getAmount().getAmountUnits(),
+                        "amountCurrency", order.getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
         return paymentMapper.toPaymentResponse(payment);
     }
 
@@ -127,6 +146,20 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setErrorDescription(failure.errorDescription());
             log.warn("Payment Capture Failed with PaymentId: {} ErrorCode: {} ErrorDescription: {}", paymentId, failure.errorCode(), failure.errorDescription());
         }
+
+        this.outBoxEventService.storeEvent(
+                EventAggregateType.PAYMENT,
+                payment.getId(),
+                "PAYMENT_STATUS_CHANGED",
+                Map.of("orderId", payment.getOrder().getId().toString(),
+                        "paymentId", payment.getId().toString(),
+                        "merchantId", payment.getMerchantId().toString(),
+                        "paymentStatus", payment.getPaymentStatus().name(),
+                        "amountUnits", payment.getOrder().getAmount().getAmountUnits(),
+                        "amountCurrency", payment.getOrder().getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
 
 
         return paymentMapper.toPaymentResponse(paymentRepository.save(payment));
@@ -179,6 +212,20 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
         orderRepository.save(orderRecord);
+
+        this.outBoxEventService.storeEvent(
+                EventAggregateType.PAYMENT,
+                payment.getId(),
+                "PAYMENT_STATUS_CHANGED",
+                Map.of("orderId", payment.getOrder().getId().toString(),
+                        "paymentId", payment.getId().toString(),
+                        "merchantId", payment.getMerchantId().toString(),
+                        "paymentStatus", payment.getPaymentStatus().name(),
+                        "amountUnits", payment.getOrder().getAmount().getAmountUnits(),
+                        "amountCurrency", payment.getOrder().getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
 
     }
 }

@@ -38,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
     AuthenticationManager authenticationManager;
     JwtUtil jwtUtil;
 
-    @Transactional(readOnly = true)
+    @Transactional()
     @Override
     public MerchantResponse signup(MerchantSignUpRequest request) {
         if (merchantRepository.existsByEmail(request.email())) {

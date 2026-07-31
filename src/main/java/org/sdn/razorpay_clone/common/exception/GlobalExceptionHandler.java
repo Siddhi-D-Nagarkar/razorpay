@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage()));
     }
 
-    @ExceptionHandler(RuntimeException.class)
+    @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
         String errorCode = ex.getResourceName().toUpperCase()+"_NOT_FOUND";
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -48,4 +48,10 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("RATE_LIMIT_EXCEEDED", ex.getMessage()));
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(Exception ex) {
+        String errorCode = "INTERNAL_SERVER_ERROR";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.of(errorCode, ex.getMessage()));
+    }
 }

@@ -11,5 +11,6 @@ import org.sdn.razorpay_clone.payment.entity.OrderRecord;
         componentModel = "spring"
 )
 public interface OrderMapper {
+    @Mapping(target = "merchantId", source = "orderRecord.merchantId")
     OrderResponse toOrderResponse(OrderRecord orderRecord);
 }

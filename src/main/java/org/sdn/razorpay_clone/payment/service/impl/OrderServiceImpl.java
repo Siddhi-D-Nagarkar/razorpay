@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.sdn.razorpay_clone.common.enums.EventAggregateType;
 import org.sdn.razorpay_clone.common.enums.OrderStatus;
 import org.sdn.razorpay_clone.common.exception.BusinessRuleViolationException;
 import org.sdn.razorpay_clone.common.exception.DuplicateResourceException;
@@ -18,6 +19,7 @@ import org.sdn.razorpay_clone.payment.entity.OrderRecord;
 import org.sdn.razorpay_clone.payment.entity.Payment;
 import org.sdn.razorpay_clone.payment.mapper.OrderMapper;
 import org.sdn.razorpay_clone.payment.mapper.PaymentMapper;
+import org.sdn.razorpay_clone.payment.outbox.OutBoxEventService;
 import org.sdn.razorpay_clone.payment.repository.OrderRepository;
 import org.sdn.razorpay_clone.payment.repository.PaymentRepository;
 import org.sdn.razorpay_clone.payment.service.OrderService;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -38,6 +41,7 @@ public class OrderServiceImpl implements OrderService {
     PaymentMapper paymentMapper;
     OrderMapper orderMapper;
     CustomerService customerService;
+    OutBoxEventService outBoxEventService;
 
     @Value("${razorpay.order.default-expiry-minutes:30}")
     @NonFinal
@@ -72,6 +76,18 @@ public class OrderServiceImpl implements OrderService {
         newOrderRecord = this.orderRepository.save(newOrderRecord);
 
         // TODO: send kafka event for order created
+        this.outBoxEventService.storeEvent(
+                EventAggregateType.ORDER,
+                newOrderRecord.getId(),
+                "ORDER_CREATED",
+                Map.of("orderId", newOrderRecord.getId(),
+                        "merchantId", merchantId.toString(),
+                        "orderStatus", newOrderRecord.getStatus().name(),
+                        "amountUnits", newOrderRecord.getAmount().getAmountUnits(),
+                        "amountCurrency", newOrderRecord.getAmount().getCurrency()
+                )
+        );
+
         return orderMapper.toOrderResponse(newOrderRecord);
     }
 
@@ -96,11 +112,23 @@ public class OrderServiceImpl implements OrderService {
                 });
 
         if (orderRecord.getStatus().equals(OrderStatus.PAID) || orderRecord.getStatus().equals(OrderStatus.CANCELED)) {
-            log.error("Cannot delete order with id {} as it is already paid", orderId);
+            log.error("Cannot cancel order with id {} as it is already paid", orderId);
             throw new BusinessRuleViolationException("ORDER_CANNOT_CANCEL",
                     "Cannot cancel order with status " + orderRecord.getStatus().name());
         }
         orderRecord.setStatus(OrderStatus.CANCELED);
+
+        this.outBoxEventService.storeEvent(
+                EventAggregateType.ORDER,
+                orderRecord.getId(),
+                "ORDER_CANCELED",
+                Map.of("orderId", orderRecord.getId(),
+                        "merchantId", merchantId.toString(),
+                        "orderStatus", orderRecord.getStatus().name(),
+                        "amountUnits", orderRecord.getAmount().getAmountUnits(),
+                        "amountCurrency", orderRecord.getAmount().getCurrency()
+                )
+        );
 
         return orderMapper.toOrderResponse(orderRecord);
     }
